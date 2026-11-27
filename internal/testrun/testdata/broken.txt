@@ -1,0 +1,84 @@
+=== RUN   An error in given
+    given [c1].Open() as b1
+    given [c1].Open() as b1
+          error alreadyOpen
+--- FAIL: An error in given
+    testdata/broken/shop.test.rr:6: given: [c1].Open() as b1 — errors: alreadyOpen
+=== RUN   No expected error
+    given [c1].Open() as b1
+    when  [c1].Add(price: 10) as b1
+          notification itemAdded(items: 1) to b1
+          request Payments.hold(cartId: c1, amount: 10)
+--- FAIL: No expected error
+    testdata/broken/shop.test.rr:20: then: expected error badPrice(price: 10), got: none
+=== RUN   An unexpected error
+    given [c1].Open() as b1
+    when  [c1].Add(price: -1) as b1
+          error badPrice(price: -1)
+    then  Cart.Card(cartId: c1) as b1
+--- FAIL: An unexpected error
+    testdata/broken/shop.test.rr:28: when: unexpected error badPrice(price: -1)
+=== RUN   No notification and request
+    given [c1].Open() as b1
+    when  [c1].Add(price: 10) as b1
+          notification itemAdded(items: 1) to b1
+          request Payments.hold(cartId: c1, amount: 10)
+--- FAIL: No notification and request
+    testdata/broken/shop.test.rr:41: then: no notification itemAdded(items: 2); sent: itemAdded(items: 1) to b1
+    testdata/broken/shop.test.rr:42: then: no notification itemAdded(items: 1) to b2; sent: itemAdded(items: 1) to b1
+    testdata/broken/shop.test.rr:43: then: no external request Payments.hold(cartId: c1, amount: 11); sent: Payments.hold(cartId: c1, amount: 10)
+=== RUN   Fields do not match
+    given [c1].Open() as b1
+    given [c1].Add(price: 10) as b1
+          notification itemAdded(items: 1) to b1
+          request Payments.hold(cartId: c1, amount: 10)
+    when  [c1].Add(price: 5) as b1
+          notification itemAdded(items: 2) to b1
+          request Payments.hold(cartId: c1, amount: 5)
+    then  Cart.Card(cartId: c1) as b1
+--- FAIL: Fields do not match
+    testdata/broken/shop.test.rr:54: then: Cart.Card(cartId: c1) as b1 matches (items: 3, total: 15): field items = 2, expected 3
+=== RUN   No result
+    when  Cart.Card(cartId: c1) as b1
+          error cartNotFound
+--- FAIL: No result
+    testdata/broken/shop.test.rr:62: then: Cart.Card(cartId: c1) as b1 matches (items: 0): result is none, expected CartCard
+    testdata/broken/shop.test.rr:60: when: unexpected error cartNotFound
+=== RUN   An execution fault
+    given [c1].Open() as b1
+--- FAIL: An execution fault
+    testdata/broken/shop.test.rr:70: when: [c1].Split(parts: 0) as b1 — runtime failure: vm: Cart.share (shop.rr:49) div.i32: division by zero
+    	called from Cart.Split (shop.rr:46)
+=== RUN   A command a fake called answers with an error
+    given Payments.Enable()
+    given [c1].Open() as b1
+    when  [c1].Add(price: 200) as b1
+          notification itemAdded(items: 1) to b1
+          request Payments.hold(cartId: c1, amount: 200)
+--- FAIL: A command a fake called answers with an error
+    testdata/broken/shop.test.rr:81: when: a fake called [c1].Held(amount: 200) (Payments) — errors: badPrice(price: 200)
+=== RUN   The fake and the model call each other endlessly
+    given Payments.Enable()
+    given [c1].Open() as b1
+--- FAIL: The fake and the model call each other endlessly
+    testdata/broken/shop.test.rr:92: when: [c1].Add(price: 10) as b1 — runtime failure: the fake cascade is longer than 1000 units of work: the fake and the model call each other endlessly
+=== RUN   Passes
+    given [b1].Join() as b1
+    given [c1].Open() as b1
+    when  [c1].Add(price: 10) as b1
+          notification itemAdded(items: 1) to b1
+          request Payments.hold(cartId: c1, amount: 10)
+    then  Cart.Card(cartId: c1) as b1
+--- PASS: Passes
+=== RUN   A rule reads entity fields
+    given [c1].Open() as b1
+    given [c1].Add(price: 10) as b1
+          notification itemAdded(items: 1) to b1
+          request Payments.hold(cartId: c1, amount: 10)
+    given [c1].Add(price: 20) as b1
+          notification itemAdded(items: 2) to b1
+          request Payments.hold(cartId: c1, amount: 20)
+    when  [c1].Split(parts: 2) as b1
+    then  Cart.Card(cartId: c1) as b1
+--- PASS: A rule reads entity fields
+FAIL	broken	failed: 9 of 11

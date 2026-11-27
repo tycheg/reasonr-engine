@@ -1,0 +1,23 @@
+--- FAIL: An error in given
+    testdata/broken/shop.test.rr:6: given: [c1].Open() as b1 — errors: alreadyOpen
+--- FAIL: No expected error
+    testdata/broken/shop.test.rr:20: then: expected error badPrice(price: 10), got: none
+--- FAIL: An unexpected error
+    testdata/broken/shop.test.rr:28: when: unexpected error badPrice(price: -1)
+--- FAIL: No notification and request
+    testdata/broken/shop.test.rr:41: then: no notification itemAdded(items: 2); sent: itemAdded(items: 1) to b1
+    testdata/broken/shop.test.rr:42: then: no notification itemAdded(items: 1) to b2; sent: itemAdded(items: 1) to b1
+    testdata/broken/shop.test.rr:43: then: no external request Payments.hold(cartId: c1, amount: 11); sent: Payments.hold(cartId: c1, amount: 10)
+--- FAIL: Fields do not match
+    testdata/broken/shop.test.rr:54: then: Cart.Card(cartId: c1) as b1 matches (items: 3, total: 15): field items = 2, expected 3
+--- FAIL: No result
+    testdata/broken/shop.test.rr:62: then: Cart.Card(cartId: c1) as b1 matches (items: 0): result is none, expected CartCard
+    testdata/broken/shop.test.rr:60: when: unexpected error cartNotFound
+--- FAIL: An execution fault
+    testdata/broken/shop.test.rr:70: when: [c1].Split(parts: 0) as b1 — runtime failure: vm: Cart.share (shop.rr:49) div.i32: division by zero
+    	called from Cart.Split (shop.rr:46)
+--- FAIL: A command a fake called answers with an error
+    testdata/broken/shop.test.rr:81: when: a fake called [c1].Held(amount: 200) (Payments) — errors: badPrice(price: 200)
+--- FAIL: The fake and the model call each other endlessly
+    testdata/broken/shop.test.rr:92: when: [c1].Add(price: 10) as b1 — runtime failure: the fake cascade is longer than 1000 units of work: the fake and the model call each other endlessly
+FAIL	broken	failed: 9 of 11

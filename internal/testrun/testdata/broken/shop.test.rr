@@ -1,0 +1,119 @@
+test "An error in given"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+    [c1].Open() as b1
+  when
+    [c1].Add(price: 10) as b1
+  then
+    notification itemAdded(items: 1)
+
+test "No expected error"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+  when
+    [c1].Add(price: 10) as b1
+  then
+    error badPrice(price: 10)
+
+test "An unexpected error"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+  when
+    [c1].Add(price: -1) as b1
+  then
+    Cart.Card(cartId: c1) as b1 matches (items: 0)
+
+test "No notification and request"
+  let b1 = new Buyer.Id
+  let b2 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+  when
+    [c1].Add(price: 10) as b1
+  then
+    notification itemAdded(items: 2)
+    notification itemAdded(items: 1) to b2
+    request Payments.hold(cartId: c1, amount: 11)
+
+test "Fields do not match"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+    [c1].Add(price: 10) as b1
+  when
+    [c1].Add(price: 5) as b1
+  then
+    Cart.Card(cartId: c1) as b1 matches (items: 3, total: 15)
+
+test "No result"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  when
+    Cart.Card(cartId: c1) as b1
+  then
+    matches (items: 0)
+
+test "An execution fault"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+  when
+    [c1].Split(parts: 0) as b1
+  then
+    error badPrice(price: 0)
+
+test "A command a fake called answers with an error"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    Payments.Enable()
+    [c1].Open() as b1
+  when
+    [c1].Add(price: 200) as b1
+  then
+    notification itemAdded(items: 1)
+
+test "The fake and the model call each other endlessly"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    Payments.Enable()
+    [c1].Open() as b1
+  when
+    [c1].Add(price: 10) as b1
+  then
+    notification itemAdded(items: 1)
+
+test "Passes"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [b1].Join() as b1
+    [c1].Open() as b1
+  when
+    [c1].Add(price: 10) as b1
+  then
+    notification itemAdded(items: 1) to b1
+    request Payments.hold(cartId: c1, amount: 10)
+    Cart.Card(cartId: c1) as b1 matches (items: 1, total: 10)
+
+test "A rule reads entity fields"
+  let b1 = new Buyer.Id
+  let c1 = new Cart.Id
+  given
+    [c1].Open() as b1
+    [c1].Add(price: 10) as b1
+    [c1].Add(price: 20) as b1
+  when
+    [c1].Split(parts: 2) as b1
+  then
+    Cart.Card(cartId: c1) as b1 matches (items: 2)

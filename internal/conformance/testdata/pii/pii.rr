@@ -1,0 +1,82 @@
+# The personal data conformance test model (RFC §20): personal fields with
+# a unique blind index, a projection with the subject from a field, an
+# external request with a personal parameter, timers with personal
+# arguments, a notification and an error with personal arguments (a
+# response by key), forget and forget with an error.
+
+role admin
+role support
+
+actor Person
+  id uuid
+  phone string? personal
+  name string? personal
+  city string?
+
+  index byPhone(phone) unique phoneTaken
+
+  command(self) Register(newPhone string personal, newName string personal, newCity string)
+    registered(newPhone: newPhone, newName: newName, newCity: newCity)
+    Sms.send(to: newPhone)
+    PersonCard(id: PersonCard.Id(id), person: id, title: newName)
+
+  command(self) Rename(newName string personal)
+    renamed(newName: newName)
+    PersonCard(id: PersonCard.Id(id), person: id, title: newName)
+
+  command(self, support) Forget()
+    forget id
+    forgotten()
+
+  command(support) ForgetFailed()
+    forget id
+    refused()
+
+  command(self) Remind(note string personal)
+    let strict = schedule(at: now + 1h, run: remind(text: note))
+    let soft = schedule(at: now + 1h, run: remindSoft(text: note))
+    reminders(strict: strict, soft: soft)
+
+  command remind(text string personal)
+    reminded(text: text)
+
+  command remindSoft(text string? personal)
+    remindedSoft(text: text)
+
+  command(self) Call(given string personal, fail bool)
+    if fail
+      wrongPhone(given: given)
+      return
+    calling(phone: given)
+
+  event registered(newPhone string? personal, newName string? personal, newCity string)
+    phone = newPhone
+    name = newName
+    city = newCity
+
+  event renamed(newName string? personal)
+    name = newName
+
+  event forgotten()
+
+  event reminders(strict Timer.Id, soft Timer.Id)
+
+  event reminded(text string? personal)
+
+  event remindedSoft(text string? personal)
+
+  notification calling(phone string personal)
+
+  error phoneTaken
+  error refused
+  error wrongPhone(given string personal)
+
+projection PersonCard
+  id Person.Id
+  person Person.Id?
+  title string? personal(person)
+
+  index byTitle(title)
+
+external Sms
+  request send(to string personal)

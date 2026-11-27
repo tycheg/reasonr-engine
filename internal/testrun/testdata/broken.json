@@ -1,0 +1,430 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "module": "broken",
+      "passed": 2,
+      "failed": 9,
+      "tests": [
+        {
+          "name": "An error in given",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 1,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "step",
+              "section": "given",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 6,
+              "step": "[c1].Open() as b1",
+              "actual": [
+                "alreadyOpen"
+              ],
+              "message": "[c1].Open() as b1 — errors: alreadyOpen"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1",
+              "errors": [
+                "alreadyOpen"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "No expected error",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 12,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "missingError",
+              "section": "then",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 20,
+              "step": "error badPrice(price: 10)",
+              "expected": "badPrice(price: 10)",
+              "message": "expected error badPrice(price: 10), got: none"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "when",
+              "text": "[c1].Add(price: 10) as b1",
+              "notifications": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 10)"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "An unexpected error",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 22,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "unexpectedError",
+              "section": "when",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 28,
+              "actual": [
+                "badPrice(price: -1)"
+              ],
+              "message": "unexpected error badPrice(price: -1)"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "when",
+              "text": "[c1].Add(price: -1) as b1",
+              "errors": [
+                "badPrice(price: -1)"
+              ]
+            },
+            {
+              "section": "then",
+              "text": "Cart.Card(cartId: c1) as b1"
+            }
+          ]
+        },
+        {
+          "name": "No notification and request",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 32,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "missingNotification",
+              "section": "then",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 41,
+              "step": "notification itemAdded(items: 2)",
+              "expected": "itemAdded(items: 2)",
+              "actual": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "message": "no notification itemAdded(items: 2); sent: itemAdded(items: 1) to b1"
+            },
+            {
+              "kind": "missingNotification",
+              "section": "then",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 42,
+              "step": "notification itemAdded(items: 1) to b2",
+              "expected": "itemAdded(items: 1) to b2",
+              "actual": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "message": "no notification itemAdded(items: 1) to b2; sent: itemAdded(items: 1) to b1"
+            },
+            {
+              "kind": "missingRequest",
+              "section": "then",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 43,
+              "step": "request Payments.hold(cartId: c1, amount: 11)",
+              "expected": "Payments.hold(cartId: c1, amount: 11)",
+              "actual": [
+                "Payments.hold(cartId: c1, amount: 10)"
+              ],
+              "message": "no external request Payments.hold(cartId: c1, amount: 11); sent: Payments.hold(cartId: c1, amount: 10)"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "when",
+              "text": "[c1].Add(price: 10) as b1",
+              "notifications": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 10)"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Fields do not match",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 45,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "mismatch",
+              "section": "then",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 54,
+              "step": "Cart.Card(cartId: c1) as b1 matches (items: 3, total: 15)",
+              "field": "items",
+              "expected": "3",
+              "actual": [
+                "2"
+              ],
+              "message": "Cart.Card(cartId: c1) as b1 matches (items: 3, total: 15): field items = 2, expected 3"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "given",
+              "text": "[c1].Add(price: 10) as b1",
+              "notifications": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 10)"
+              ]
+            },
+            {
+              "section": "when",
+              "text": "[c1].Add(price: 5) as b1",
+              "notifications": [
+                "itemAdded(items: 2) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 5)"
+              ]
+            },
+            {
+              "section": "then",
+              "text": "Cart.Card(cartId: c1) as b1"
+            }
+          ]
+        },
+        {
+          "name": "No result",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 56,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "noResult",
+              "section": "then",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 62,
+              "step": "Cart.Card(cartId: c1) as b1 matches (items: 0)",
+              "expected": "CartCard",
+              "actual": [
+                "none"
+              ],
+              "message": "Cart.Card(cartId: c1) as b1 matches (items: 0): result is none, expected CartCard"
+            },
+            {
+              "kind": "unexpectedError",
+              "section": "when",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 60,
+              "actual": [
+                "cartNotFound"
+              ],
+              "message": "unexpected error cartNotFound"
+            }
+          ],
+          "steps": [
+            {
+              "section": "when",
+              "text": "Cart.Card(cartId: c1) as b1",
+              "errors": [
+                "cartNotFound"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "An execution fault",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 64,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "fault",
+              "section": "when",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 70,
+              "step": "[c1].Split(parts: 0) as b1",
+              "message": "[c1].Split(parts: 0) as b1 — runtime failure: vm: Cart.share (shop.rr:49) div.i32: division by zero\n\tcalled from Cart.Split (shop.rr:46)"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            }
+          ]
+        },
+        {
+          "name": "A command a fake called answers with an error",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 74,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "fake",
+              "section": "when",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 81,
+              "step": "[c1].Held(amount: 200) (Payments)",
+              "actual": [
+                "badPrice(price: 200)"
+              ],
+              "message": "a fake called [c1].Held(amount: 200) (Payments) — errors: badPrice(price: 200)"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "Payments.Enable()"
+            },
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "when",
+              "text": "[c1].Add(price: 200) as b1",
+              "notifications": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 200)"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "The fake and the model call each other endlessly",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 85,
+          "passed": false,
+          "durationMs": 0,
+          "failures": [
+            {
+              "kind": "fault",
+              "section": "when",
+              "file": "testdata/broken/shop.test.rr",
+              "line": 92,
+              "step": "[c1].Add(price: 10) as b1",
+              "message": "[c1].Add(price: 10) as b1 — runtime failure: the fake cascade is longer than 1000 units of work: the fake and the model call each other endlessly"
+            }
+          ],
+          "steps": [
+            {
+              "section": "given",
+              "text": "Payments.Enable()"
+            },
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            }
+          ]
+        },
+        {
+          "name": "Passes",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 96,
+          "passed": true,
+          "durationMs": 0,
+          "steps": [
+            {
+              "section": "given",
+              "text": "[b1].Join() as b1"
+            },
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "when",
+              "text": "[c1].Add(price: 10) as b1",
+              "notifications": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 10)"
+              ]
+            },
+            {
+              "section": "then",
+              "text": "Cart.Card(cartId: c1) as b1"
+            }
+          ]
+        },
+        {
+          "name": "A rule reads entity fields",
+          "file": "testdata/broken/shop.test.rr",
+          "line": 109,
+          "passed": true,
+          "durationMs": 0,
+          "steps": [
+            {
+              "section": "given",
+              "text": "[c1].Open() as b1"
+            },
+            {
+              "section": "given",
+              "text": "[c1].Add(price: 10) as b1",
+              "notifications": [
+                "itemAdded(items: 1) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 10)"
+              ]
+            },
+            {
+              "section": "given",
+              "text": "[c1].Add(price: 20) as b1",
+              "notifications": [
+                "itemAdded(items: 2) to b1"
+              ],
+              "requests": [
+                "Payments.hold(cartId: c1, amount: 20)"
+              ]
+            },
+            {
+              "section": "when",
+              "text": "[c1].Split(parts: 2) as b1"
+            },
+            {
+              "section": "then",
+              "text": "Cart.Card(cartId: c1) as b1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

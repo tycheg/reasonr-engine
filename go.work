@@ -1,0 +1,13 @@
+go 1.23.0
+
+// The core and the contract of plugins (port, a module of its own with its
+// own tags port/vX.Y.Z) are developed together: the core's tests run on the
+// contract of the same commit. go.mod of the core requires a released
+// version of the contract; Go reads the go.mod of every requirement, even
+// of a module in use, hence the replace of the required version.
+use (
+	.
+	./port
+)
+
+replace github.com/tycheg/reasonr-engine/port v0.1.0 => ./port

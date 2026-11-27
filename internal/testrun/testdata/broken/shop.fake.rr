@@ -1,0 +1,13 @@
+# A fake of the payment system: answers Held to every hold.
+
+fake Payments
+  enabled bool
+
+  command Enable()
+    switchedOn()
+
+  event switchedOn()
+    enabled = true
+
+  request hold(cartId Cart.Id, amount decimal)
+    [cartId].Held(amount: amount)

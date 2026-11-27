@@ -1,0 +1,178 @@
+role admin
+
+enum Kind
+  small
+  big
+
+value Point
+  x int
+  y int
+  check x >= 0
+
+  sum() int
+    return x + y
+
+  shifted(dx int) Point
+    return Point(x: x + dx, y: y)
+
+  total(dx int) int
+    return shifted(dx: dx).sum()
+
+value BoxRow
+  boxId Box.Id
+  size int
+
+value BoxStats
+  total int
+
+actor Keeper
+  id uuid
+  name string? personal
+
+  command(self) Join(keeperName string personal)
+    joined(keeperName: keeperName)
+
+  command(self) Leave()
+    forget id
+    left()
+
+  command ping(boxId Box.Id)
+    pinged(boxId: boxId)
+
+  event joined(keeperName string? personal)
+    name = keeperName
+
+  event left()
+
+  event pinged(boxId Box.Id)
+
+aggregate Box
+  id uuid
+  kind Kind
+  items list<string>
+  tags set<string>
+  counts map<string, int>
+  owner Keeper.Id?
+  timer Timer.Id?
+  origin Point
+  note string?
+  size int
+
+  rule capacity(k Kind) int
+    if k == big
+      return 10 * 2
+    return -3
+
+  command(admin) Create(keeper Keeper.Id, boxKind Kind = small)
+    if [id]
+      alreadyExists()
+      return
+    created(keeper: keeper, boxKind: boxKind)
+    BoxView(id: BoxView.Id(id), kind: boxKind, size: 0)
+    let t = schedule(at: now + 2 * 30s, run: expire())
+    timerSet(newTimer: t)
+    Store.save(boxId: id)
+
+  command(admin) Fill(names list<string>, limit int = 10)
+    let total = 0
+    for n in names
+      if n.length == 0
+        continue
+      if total >= limit
+        tooMany(limit: limit)
+        break
+      total = total + 1
+    let i = 0
+    while i < capacity(k: kind) and not (i > 100)
+      i = i + 1
+    for k in counts
+      if k in tags or k in items
+        total = total + (counts.get(k) ?? 0)
+    if "admin" in caller.roles
+      total = total + abs(-1) + min(1, 2) + int("5")
+    let label = "Box {kind} of {total} pcs."
+    let first = items.first ?? "empty"
+    let len = note?.length
+    let ok = total > 0 and kind in [small, big]
+    let p = origin.shifted(dx: total)
+    if hasErrors
+      return
+    filled(count: total, label: label + first, wide: ok and p.sum() > 0)
+    if after.size > 100
+      tooMany(limit: 100)
+    boxReady(boxId: id) to owner
+    [owner]?.ping(boxId: id)
+    let other = new Box.Id
+    [other].Create(keeper: owner ?? new Keeper.Id)
+
+  command expire()
+    delete timer
+    delete [BoxView.Id(id)]
+    expired(at: now, delay: 30s * 2 - 1m)
+
+  command touch()
+    touched()
+
+  event created(keeper Keeper.Id, boxKind Kind)
+    owner = keeper
+    kind = boxKind
+    counts = counts.put("start", 1)
+    tags = ["new"]
+
+  event timerSet(newTimer Timer.Id)
+    timer = newTimer
+
+  event filled(count int, label string, wide bool)
+    size = count
+    items = items.with(label)
+
+  event expired(at timestamp, delay duration)
+    timer = none
+
+  event touched()
+
+  notification boxReady(boxId Box.Id)
+
+  error alreadyExists
+  error tooMany(limit int)
+
+  query(admin) Stats(wanted Kind) BoxStats
+    return BoxStats(total: 0)
+
+projection BoxView
+  id Box.Id
+  kind Kind
+  size int
+  owner Keeper.Id?
+
+  index byKind(kind, size)
+  index byOwner(owner)
+
+  query(admin) Small(top int) list<BoxRow>
+    return [BoxView]
+      where kind == small and size >= top
+      sort size desc
+      limit 10
+      select BoxRow(boxId: Box.Id(id), size: size)
+
+  query(admin) Total(wanted Kind) BoxStats
+    let total = 0
+    let rows = [BoxView]
+      where kind == wanted
+      limit 100
+    for r in rows
+      total = total + r.size
+    return BoxStats(total: total)
+
+  query(admin) Orphans() list<BoxRow>
+    return [BoxView]
+      where owner is none
+      limit 10
+      select BoxRow(boxId: Box.Id(id), size: size)
+
+external Store
+  request save(boxId Box.Id)
+
+migration retouch
+  for b in all Box
+    [b].touch()

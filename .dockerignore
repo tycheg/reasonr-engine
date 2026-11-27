@@ -1,0 +1,3 @@
+# The engine build context of platform images (--build-context engine=…).
+**/node_modules
+/cmd/reasonrd/reasonrd

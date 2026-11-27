@@ -1,0 +1,74 @@
+# A model for checking test failures: every test in shop.test.rr is wrong.
+
+role admin
+role payments
+
+value CartCard
+  items int
+  total decimal
+
+actor Buyer
+  id uuid
+
+  command(self) Join()
+    joined()
+
+  event joined()
+
+aggregate Cart
+  id uuid
+  owner Buyer.Id?
+  items int
+  total decimal
+
+  command(Buyer) Open()
+    if [id]
+      alreadyOpen()
+      return
+    opened(buyer: me)
+
+  command(owner) Add(price decimal)
+    if price <= 0
+      badPrice(price: price)
+      return
+    added(price: price)
+    itemAdded(items: after.items)
+    Payments.hold(cartId: id, amount: price)
+
+  ## The payment system answers: an amount over 100 is an error, otherwise a new request (endlessly)
+  command(payments) Held(amount decimal)
+    if amount > 100
+      badPrice(price: amount)
+      return
+    Payments.hold(cartId: id, amount: amount)
+
+  command(owner) Split(parts int)
+    split(share: share(parts: parts))
+
+  rule share(parts int) int
+    return items / parts
+
+  event opened(buyer Buyer.Id)
+    owner = buyer
+
+  event added(price decimal)
+    items = items + 1
+    total = total + price
+
+  event split(share int)
+
+  notification itemAdded(items int)
+
+  error alreadyOpen
+  error badPrice(price decimal)
+  error cartNotFound
+
+  query(Buyer) Card(cartId Cart.Id) CartCard
+    let c = [cartId]
+    if c is none
+      cartNotFound()
+      return
+    return CartCard(items: c.items, total: c.total)
+
+external(payments) Payments
+  request hold(cartId Cart.Id, amount decimal)

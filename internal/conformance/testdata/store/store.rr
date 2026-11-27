@@ -1,0 +1,152 @@
+# The engine port conformance test model: a projection with indexes,
+# uniqueness with error arguments, timers, personal data, sequence,
+# notifications to the initiator and to another actor, requests (with a
+# deadline timer), a migration.
+
+role admin
+
+enum Kind
+  small
+  big
+
+actor Keeper
+  id uuid
+  name string? personal
+  code string?
+
+  index byCode(code) unique codeTaken
+
+  command(self) Join(keeperName string personal, keeperCode string?)
+    joined(keeperName: keeperName, keeperCode: keeperCode)
+
+  command(self) Leave()
+    forget id
+    left()
+
+  command(self) Poke(other Keeper.Id)
+    pokeSent(target: other)
+    poked(by: id) to other
+
+  event joined(keeperName string? personal, keeperCode string?)
+    name = keeperName
+    code = keeperCode
+
+  event left()
+
+  error codeTaken(code string)
+
+  notification pokeSent(target Keeper.Id)
+  notification poked(by Keeper.Id)
+
+aggregate Box
+  id uuid
+  kind Kind
+  size int
+  owner Keeper.Id?
+  timer Timer.Id?
+  touches int
+
+  command(admin) Put(boxKind Kind, boxSize int, keeper Keeper.Id?)
+    stored(boxKind: boxKind, boxSize: boxSize, keeper: keeper)
+    BoxView(id: BoxView.Id(id), kind: boxKind, size: boxSize, owner: keeper)
+
+  ## A projection row is written whole: owner is not passed and becomes
+  ## none; the unit's result for a row is the last operation.
+  command(admin) Relabel(boxKind Kind)
+    relabeled(boxKind: boxKind)
+    BoxView(id: BoxView.Id(id), kind: boxKind, size: 0)
+    delete [BoxView.Id(id)]
+    BoxView(id: BoxView.Id(id), kind: boxKind, size: size)
+
+  command(admin) Arm(delay duration)
+    let t = schedule(at: now + delay, run: expire())
+    armed(newTimer: t)
+
+  command(admin) Ship(delay duration)
+    let t = schedule(at: now + delay, run: expire())
+    armed(newTimer: t)
+    Store.ship(boxId: id, timeout: t)
+
+  command(admin) Disarm()
+    delete timer
+    disarmed()
+
+  command expire()
+    delete [BoxView.Id(id)]
+    expired(at: now)
+    Store.save(boxId: id)
+
+  command touch()
+    touched()
+
+  ## Reading an entity by id.
+  query(admin) Current(boxId Box.Id) BoxSize
+    let b = [boxId]
+    if b is none
+      missing()
+      return
+    return BoxSize(size: b.size)
+
+  error missing
+
+  event stored(boxKind Kind, boxSize int, keeper Keeper.Id?)
+    kind = boxKind
+    size = boxSize
+    owner = keeper
+
+  event relabeled(boxKind Kind)
+    kind = boxKind
+
+  event armed(newTimer Timer.Id)
+    timer = newTimer
+
+  event disarmed()
+    timer = none
+
+  event expired(at timestamp)
+    timer = none
+
+  event touched()
+    touches = touches + 1
+
+projection BoxView
+  id Box.Id
+  kind Kind
+  size int
+  owner Keeper.Id?
+
+  index byKind(kind, size)
+  index bySize(size desc)
+
+  query(admin) Size(boxId Box.Id) BoxSize
+    let v = [BoxView.Id(boxId)]
+    if v is none
+      noBox()
+      return
+    return BoxSize(size: v.size)
+
+  error noBox
+
+value BoxSize
+  size int
+
+external Store
+  request save(boxId Box.Id)
+  request ship(boxId Box.Id, timeout Timer.Id)
+
+aggregate Ticket
+  id sequence
+
+  command(admin) create Open()
+    opened()
+
+  command(admin) Issue()
+    issued()
+
+  event opened()
+
+  event issued()
+
+migration retouch
+  for b in all Box
+    [b].touch()

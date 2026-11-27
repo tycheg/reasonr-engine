@@ -1,0 +1,53 @@
+# A full configuration (RFC §31.1).
+engine: stateless
+
+stores:
+  main:      { type: postgres, dsn: "postgres://app@db/main", tenancy: rls }
+  search:    { type: opensearch, urls: [https://os:9200] }       # E6
+  analytics: { type: clickhouse, dsn: "clickhouse://ch/events" }  # E6
+
+state: main                        # entities, timers, the outbox, uniqueness, keys
+projections:
+  default: main                    # synchronously, in the commit transaction
+  OrderMart: search                # asynchronously from the outbox
+events: analytics                  # the event store; not stored without the key
+
+bus:
+  type: kafka                      # E6; nats | rabbitmq
+  brokers: [kafka:9092]
+  notifications: true              # notifications without delivery guarantees
+
+integrations:
+  workers: 32
+  retry: { initial: 500ms, multiplier: 1.5, max_interval: 30s, max_elapsed: 2h }
+  auth: { key_file: /etc/reasonr/integrations.pem, kid: "2026-10" }
+  default:  { type: http, url: http://integrations.internal }
+  Matching: { type: grpc, target: matching:9090 }   # E6
+
+notifications:
+  hub: { type: postgres }          # LISTEN/NOTIFY; redis | nats — E6
+  delivery: [websocket, longpoll]
+
+ingress:
+  - { type: http, listen: ":8080", codec: json, log: { requests: true } }
+  - type: grpc
+    listen: ":9090"
+
+auth:
+  type: jwt
+  jwks: https://idp/.well-known/jwks.json
+  tenant: { claim: tid }
+  actor:  { claim: sub, type: { claim: actor_type } }
+  roles:  { claim: roles }
+
+tenants:                           # data tenant → model
+  default: {}
+  acme-prod: { extension: acme }
+  'acme-staging': { extension: "acme" }
+
+telemetry:
+  logs:    { format: json, level: info }
+  metrics: { type: prometheus, listen: ":9100" }
+  traces:  { type: otlp, endpoint: "otel:4317" }
+
+limits: { retries: 16, consistency_wait: 2s, idempotency_ttl: 24h }

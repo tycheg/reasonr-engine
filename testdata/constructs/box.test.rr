@@ -1,0 +1,20 @@
+let start = Point(x: 1, y: 2)
+
+test "A box is created"
+  let k1 = new Keeper.Id
+  let b1 = new Box.Id
+  given
+    [k1].Join(keeperName: "Ann") as k1
+    time offset +5m
+  when
+    [b1].Create(keeper: k1, boxKind: big) as admin
+  then
+    request Store.save(boxId: b1)
+    BoxView.Total(wanted: big) as admin matches (total: 0)
+
+test "Statistics"
+  when
+    BoxView.Total(wanted: small) as admin
+  then
+    matches (total: 0)
+    error tooMany(limit: 10)
