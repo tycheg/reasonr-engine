@@ -211,6 +211,35 @@ func ProjectionRow(c *reasonr.RecordCodec, a *reasonr.Arena, op *reasonr.Project
 	return a.End(reasonr.KindRecord, op.Projection, m), nil
 }
 
+// Own copies the projection operations and the subjects of a unit from the
+// arena src into a new arena: a consumer of the effect stream that builds
+// rows writes to the arena, and the unit's arena is read by the other
+// consumers at the same time.
+func Own(src *reasonr.Arena, ops []reasonr.ProjectionOp, subjects []reasonr.Subject) (*reasonr.Arena, []reasonr.ProjectionOp, []reasonr.Subject) {
+	a := reasonr.NewArena()
+	a.SetStatic(src.Static())
+	outOps := make([]reasonr.ProjectionOp, len(ops))
+	for i, op := range ops {
+		op.ID = a.Copy(src, op.ID)
+		if len(op.Set) > 0 {
+			set := make([]reasonr.FieldValue, len(op.Set))
+			for j, fv := range op.Set {
+				set[j] = reasonr.FieldValue{Field: fv.Field, Value: a.Copy(src, fv.Value)}
+			}
+			op.Set = set
+		}
+		outOps[i] = op
+	}
+	var outSubjects []reasonr.Subject
+	if len(subjects) > 0 {
+		outSubjects = make([]reasonr.Subject, len(subjects))
+		for i, sub := range subjects {
+			outSubjects[i] = reasonr.Subject{Type: sub.Type, ID: a.Copy(src, sub.ID)}
+		}
+	}
+	return a, outOps, outSubjects
+}
+
 // LastOps keeps of a unit's operations the last one on each row (ordered by
 // the first operation on the row): a row is written whole, so the unit's
 // result is its last write or deletion.

@@ -152,6 +152,10 @@ func (s *Store) Apply(ctx context.Context, tenant port.Tenant, pos port.Position
 	if err != nil {
 		return err
 	}
+	// The unit's arena is shared with the other consumers of the effect
+	// stream, which read it at the same time, and building and sealing a
+	// row writes to its arena: the delivery works on copies in its own.
+	a, ops, forget.Subjects = storekit.Own(a, ops, forget.Subjects)
 	rec := &port.UnitRecord{}
 	if err := m.projectionRows(ctx, s.ring.Resealer(tenant, keys), a, ops, rec, nil); err != nil {
 		return err

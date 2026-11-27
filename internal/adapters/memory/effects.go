@@ -84,6 +84,10 @@ func (s *Store) Apply(ctx context.Context, tenant port.Tenant, pos port.Position
 		return err
 	}
 	seal := s.ring.Resealer(tenant, keys)
+	// The unit's arena is shared with the other consumers of the effect
+	// stream, which read it at the same time, and building and sealing a
+	// row writes to its arena: the delivery works on copies in its own.
+	a, ops, forget.Subjects = storekit.Own(a, ops, forget.Subjects)
 	for _, op := range storekit.LastOps(a, ops) {
 		r, k, err := sp.row(a, op.Projection, op.ID)
 		if err != nil {
