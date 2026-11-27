@@ -21,7 +21,7 @@ jobs:
         run: make vet
       - name: staticcheck
         run: |
-          go install honnef.co/go/tools/cmd/staticcheck@2026.2.1
+          go install honnef.co/go/tools/cmd/staticcheck@2026.2.2
           PATH="$(go env GOPATH)/bin:$PATH" make lint
       - name: test
         run: make test-race

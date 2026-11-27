@@ -107,14 +107,17 @@ func Body(s *reasonr.Schema, a *reasonr.Arena, mi *reasonr.MethodInfo, args reas
 	if len(vals) != len(mi.Params) {
 		return nil, fmt.Errorf("the record has %d fields, the schema %d", len(vals), len(mi.Params))
 	}
+	// The record without the timeout goes into an arena of its own: a is
+	// the committed unit's, which other deliveries read at the same time.
+	own := reasonr.NewArena()
 	params := make([]reasonr.FieldInfo, 0, len(mi.Params)-1)
 	kept := make([]reasonr.Value, 0, len(mi.Params)-1)
 	for i := range mi.Params {
 		if i != mi.TimeoutParam-1 {
-			params, kept = append(params, mi.Params[i]), append(kept, vals[i])
+			params, kept = append(params, mi.Params[i]), append(kept, own.Copy(a, vals[i]))
 		}
 	}
-	return v.AppendFields(nil, a, params, a.Record(0, kept...))
+	return v.AppendFields(nil, own, params, own.Record(0, kept...))
 }
 
 // Key is the text form of a request's idempotency key: uuid — 8-4-4-4-12,

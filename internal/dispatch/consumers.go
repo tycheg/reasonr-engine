@@ -48,8 +48,9 @@ func (p *Projections) Deliver(ctx context.Context, u *kind.CommittedUnit, _ int,
 // Events is the event store.
 type Events struct {
 	Sink ports.EventStore
-	// OnAppend is called after writing a unit's events: it wakes this
-	// process's bus (Bus.Wake); nil — not called.
+	// OnAppend is called after the cursor moves past written events: it
+	// wakes this process's bus (Bus.Wake), which reads up to that cursor;
+	// nil — not called.
 	OnAppend func()
 }
 
@@ -59,24 +60,19 @@ func (e *Events) Deliver(ctx context.Context, u *kind.CommittedUnit, _ int, _ fu
 	if len(u.Entities) == 0 {
 		return nil
 	}
-	if err := e.Sink.Append(ctx, []kind.CommittedUnit{*u}); err != nil {
-		return err
-	}
-	if e.OnAppend != nil {
-		e.OnAppend()
-	}
-	return nil
+	return e.Sink.Append(ctx, []kind.CommittedUnit{*u})
 }
 
 // DeliverBatch writes the events of a batch in one operation.
 func (e *Events) DeliverBatch(ctx context.Context, units []kind.CommittedUnit) error {
-	if err := e.Sink.Append(ctx, units); err != nil {
-		return err
-	}
+	return e.Sink.Append(ctx, units)
+}
+
+// Moved wakes the bus: the events up to the new cursor are written.
+func (e *Events) Moved() {
 	if e.OnAppend != nil {
 		e.OnAppend()
 	}
-	return nil
 }
 
 // Forgets is the forget journal (RFC §20.3): the subjects forgotten by

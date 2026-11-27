@@ -46,6 +46,13 @@ type BatchConsumer interface {
 	DeliverBatch(ctx context.Context, units []kind.CommittedUnit) error
 }
 
+// Mover is a consumer that learns when its cursor has moved: what reads up
+// to the cursor (the bus reads events up to the events consumer's) is woken
+// after the move, not after the delivery, or it reads the old cursor.
+type Mover interface {
+	Moved()
+}
+
 // Dispatcher is the effect stream dispatcher.
 type Dispatcher struct {
 	Effects   kind.EffectSource
@@ -131,6 +138,13 @@ type worker struct {
 	lag                     port.Gauge
 }
 
+// moved tells a Mover consumer that its cursor has moved.
+func (w *worker) moved() {
+	if m, ok := w.c.(Mover); ok {
+		m.Moved()
+	}
+}
+
 // run is the consumer loop: the lease, reading, delivery, the cursor.
 func (w *worker) run(ctx context.Context) error {
 	d, name := w.d, w.c.Name()
@@ -173,6 +187,8 @@ func (w *worker) run(ctx context.Context) error {
 					cursor = units[len(units)-1].Position
 					if err := d.Coord.SetCursor(ctx, name, cursor); err != nil && ctx.Err() == nil {
 						d.Log.Warn("dispatcher: the cursor is not written", "consumer", name, "error", err)
+					} else if err == nil {
+						w.moved()
 					}
 					w.delivered.Add(float64(len(units)), name)
 					continue
@@ -195,6 +211,8 @@ func (w *worker) run(ctx context.Context) error {
 						break // stopping: the batch is reread from the cursor
 					}
 					d.Log.Warn("dispatcher: the cursor is not written", "consumer", name, "error", err)
+				} else {
+					w.moved()
 				}
 				w.delivered.Add(1, name)
 			}

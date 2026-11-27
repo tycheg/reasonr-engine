@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	reasonr "github.com/tycheg/reasonr-compiler"
@@ -60,9 +61,11 @@ type Engine struct {
 	Requests *dispatch.Sender
 	// wakers wake the request senders of the kind after a unit of work
 	// with external requests (Host.OnRequests); coord is the coordinator
-	// of a main store without one of its own.
-	wakers []func()
-	coord  port.Coordinator
+	// of a main store without one of its own, made once: the roles and
+	// the kind ask for it from different goroutines.
+	wakers    []func()
+	coord     port.Coordinator
+	coordOnce sync.Once
 	// busWake wakes the bus after the event store appends (nil — no bus).
 	busWake func()
 	// Bus publishes events from the event store (the dispatch role); nil —
@@ -594,9 +597,7 @@ func (e *Engine) coordinator() port.Coordinator {
 	if coord, ok := rows.As[port.Coordinator](e.Store); ok {
 		return coord
 	}
-	if e.coord == nil {
-		e.coord = memory.NewCoordinator()
-	}
+	e.coordOnce.Do(func() { e.coord = memory.NewCoordinator() })
 	return e.coord
 }
 
