@@ -1,2 +1,4 @@
 github.com/tycheg/reasonr-compiler v0.1.0 h1:/2bbuQmRP+tknm2PfK2QQqY0dRRT0ql9x40HFMZ6OcI=
 github.com/tycheg/reasonr-compiler v0.1.0/go.mod h1:f89oP2u0gdDTdomQTXm+WFXKLsnL89dMUmciRpFTTL0=
+github.com/tycheg/reasonr-engine/port v0.1.0 h1:CrGGZO4Q94cSICnTJljQ5GSKE2ouyu6lZRpy9XncNvE=
+github.com/tycheg/reasonr-engine/port v0.1.0/go.mod h1:PB/8ajFBwWdSB1cfgmtzpKEYr6C7Hlzc7AFJ4jOEAa8=
