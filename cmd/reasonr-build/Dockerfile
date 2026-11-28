@@ -7,12 +7,12 @@
 # The build context is the repository root (make images):
 #
 #   docker build -f cmd/reasonr-build/Dockerfile -t reasonr-builder:0.1.0 .
-FROM golang:1.23 AS build
+FROM golang:1.27.4 AS build
 WORKDIR /src
 COPY . ./
 RUN CGO_ENABLED=0 go build -o /reasonr-build ./cmd/reasonr-build
 
-FROM golang:1.23
+FROM golang:1.27.4
 COPY --from=build /reasonr-build /usr/local/bin/reasonr-build
 WORKDIR /work
 ENTRYPOINT ["reasonr-build"]

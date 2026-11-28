@@ -1,4 +1,4 @@
-go 1.23.0
+go 1.27.4
 
 // The core and the contract of plugins (port, a module of its own with its
 // own tags port/vX.Y.Z) are developed together: the core's tests run on the

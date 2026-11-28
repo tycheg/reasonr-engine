@@ -1,3 +1,3 @@
 module github.com/tycheg/reasonr-engine/port
 
-go 1.23.0
+go 1.27.4

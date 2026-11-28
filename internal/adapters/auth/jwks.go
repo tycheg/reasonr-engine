@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
@@ -128,10 +127,11 @@ func ParseJWKS(data []byte) (map[string]any, error) {
 				return nil, fmt.Errorf("JWKS: EC key %q is not on curve P-256", k.Kid)
 			}
 			point := append(append([]byte{4}, x.FillBytes(make([]byte, 32))...), y.FillBytes(make([]byte, 32))...)
-			if _, err := ecdh.P256().NewPublicKey(point); err != nil {
+			pub, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), point)
+			if err != nil {
 				return nil, fmt.Errorf("JWKS: EC key %q is not on curve P-256", k.Kid)
 			}
-			out[k.Kid] = &ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}
+			out[k.Kid] = pub
 		}
 	}
 	return out, nil

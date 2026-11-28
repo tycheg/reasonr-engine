@@ -1,6 +1,6 @@
 module github.com/tycheg/reasonr-engine
 
-go 1.23.0
+go 1.27.4
 
 require (
 	github.com/tycheg/reasonr-compiler v0.1.0
