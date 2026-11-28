@@ -247,11 +247,11 @@ Its tests run the suites of `port/porttest` on a live store (`porttest.RunStore`
 # components.yaml
 module: example.com/acme/engine
 binary: acme-engine
-engine: github.com/tycheg/reasonr-engine v0.1.0
-port: github.com/tycheg/reasonr-engine/port v0.1.0
+engine: github.com/tycheg/reasonr-engine v0.2.0
+port: github.com/tycheg/reasonr-engine/port v0.2.0
 plugins:
-  - github.com/tycheg/reasonr-stateless/src v0.1.0
-  - github.com/tycheg/reasonr-postgres/src v0.1.0
+  - github.com/tycheg/reasonr-stateless/src v0.2.0
+  - github.com/tycheg/reasonr-postgres/src v0.2.0
   - example.com/acme/reasonr-oracle v1.2.0
 replace:                                   # local directories (development)
   example.com/acme/reasonr-oracle: ./oracle
@@ -259,7 +259,7 @@ replace:                                   # local directories (development)
 
 ```bash
 reasonr-build -f components.yaml -o acme-engine
-docker run --rm -v "$PWD:/work" reasonr-builder:0.1.0 -f components.yaml -o acme-engine
+docker run --rm -v "$PWD:/work" reasonr-builder:0.2.0 -f components.yaml -o acme-engine
 reasonr-build -f components.yaml --main cmd/acme-engine/main.go   # a module that keeps its own go.mod
 ```
 

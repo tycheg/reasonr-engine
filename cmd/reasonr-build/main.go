@@ -5,11 +5,11 @@
 //
 //	module: example.com/acme/engine           # the module of the generated binary
 //	binary: acme-engine                       # the binary name (default reasonrd)
-//	engine: github.com/tycheg/reasonr-engine v0.1.0
-//	port: github.com/tycheg/reasonr-engine/port v0.1.0
+//	engine: github.com/tycheg/reasonr-engine v0.2.0
+//	port: github.com/tycheg/reasonr-engine/port v0.2.0
 //	plugins:
-//	  - github.com/tycheg/reasonr-stateless/src v0.1.0
-//	  - github.com/tycheg/reasonr-postgres/src v0.1.0
+//	  - github.com/tycheg/reasonr-stateless/src v0.2.0
+//	  - github.com/tycheg/reasonr-postgres/src v0.2.0
 //	  - example.com/acme/reasonr-oracle v1.2.0
 //	replace:                                  # modules from local directories, relative to the manifest
 //	  example.com/acme/reasonr-oracle: ./oracle

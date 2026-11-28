@@ -31,8 +31,8 @@ func manifest(t *testing.T, plugins, replace string) string {
 	path := filepath.Join(t.TempDir(), "components.yaml")
 	src := `module: example.com/acme/engine
 binary: acme-engine
-engine: github.com/tycheg/reasonr-engine v0.1.0
-port: github.com/tycheg/reasonr-engine/port v0.1.0
+engine: github.com/tycheg/reasonr-engine v0.2.0
+port: github.com/tycheg/reasonr-engine/port v0.2.0
 plugins:
 ` + plugins + `replace:
   github.com/tycheg/reasonr-engine: ` + r + `
@@ -100,10 +100,10 @@ func TestContractVersions(t *testing.T) {
 	r := repo(t)
 	m := manifest(t, "  - example.com/newcontract v0.1.0\n",
 		"  example.com/newcontract: "+r+"/cmd/reasonr-build/testdata/newcontract\n"+
-			"  github.com/tycheg/reasonr-engine/port@v0.2.0: "+r+"/port\n")
+			"  github.com/tycheg/reasonr-engine/port@v0.3.0: "+r+"/port\n")
 	var out, errb bytes.Buffer
 	if code := run([]string{"-f", m, "-o", filepath.Join(t.TempDir(), "bin")}, &out, &errb); code != 1 ||
-		!strings.Contains(errb.String(), "different versions of the contract") || !strings.Contains(errb.String(), "example.com/newcontract@v0.1.0") || !strings.Contains(errb.String(), "v0.1.0: github.com/tycheg/reasonr-engine@v0.1.0") {
+		!strings.Contains(errb.String(), "different versions of the contract") || !strings.Contains(errb.String(), "example.com/newcontract@v0.1.0") || !strings.Contains(errb.String(), "v0.2.0: github.com/tycheg/reasonr-engine@v0.2.0") {
 		t.Fatalf("code %d:\n%s", code, errb.String())
 	}
 }

@@ -10,4 +10,4 @@ use (
 	./port
 )
 
-replace github.com/tycheg/reasonr-engine/port v0.1.0 => ./port
+replace github.com/tycheg/reasonr-engine/port v0.2.0 => ./port

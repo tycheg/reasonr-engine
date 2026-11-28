@@ -68,4 +68,4 @@ install:
 
 # The reasonr-builder image: reasonr-build with the Go toolchain.
 images:
-	docker build -f cmd/reasonr-build/Dockerfile -t reasonr-builder:0.1.0 .
+	docker build -f cmd/reasonr-build/Dockerfile -t reasonr-builder:0.2.0 .
