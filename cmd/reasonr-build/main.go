@@ -21,6 +21,7 @@
 //
 //	reasonr-build [-f components.yaml] [-o binary] [--replace module=dir ...] [--keep]
 //	reasonr-build [-f components.yaml] --main path [--check]
+//	reasonr-build [-f plugin.yaml] --host path/to/reasonrd [-o plugin.so] [--replace module=dir ...] [--keep]
 //
 // --replace adds a replacement to those of the manifest (a build from
 // sources: the modules of a checkout instead of their versions).
@@ -28,6 +29,11 @@
 // With --main it writes only the generated main.go to path (a module that
 // keeps its own go.mod, as a distribution does); --check fails if the file
 // differs instead.
+//
+// With --host it builds the plugins of the manifest as one binary plugin
+// (.so, plan 0024) for the binary at path: with its Go, build settings and
+// the versions of its modules (plugin.go). engine and port may be left out
+// of such a manifest; given, they must be the binary's.
 package main
 
 import (
@@ -45,6 +51,10 @@ import (
 )
 
 func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
+
+// goDirective is the go version of the generated go.mod: the Go of the
+// official builds.
+const goDirective = "1.27.4"
 
 // Manifest is a build manifest.
 type Manifest struct {
@@ -66,6 +76,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	mainPath := fs.String("main", "", "write only the generated main.go to this path")
 	check := fs.Bool("check", false, "with --main: fail if the file differs")
 	keep := fs.Bool("keep", false, "keep the build directory (it is printed)")
+	host := fs.String("host", "", "build a binary plugin (.so) for this engine binary")
 	var replace []string
 	fs.Func("replace", "module=dir: replace a module with a directory (repeated)", func(v string) error {
 		if mod, dir, ok := strings.Cut(v, "="); !ok || mod == "" || dir == "" {
@@ -89,6 +100,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return 2
 		}
 	}
+	if *host == "" && (m.Engine.Path == "" || m.Port.Path == "") {
+		fmt.Fprintf(stderr, "reasonr-build: %s: set engine and port\n", *file)
+		return 2
+	}
 	source := m.Main()
 	if *mainPath != "" {
 		return writeMain(*mainPath, source, *check, stderr)
@@ -101,7 +116,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "reasonr-build: %v\n", err)
 		return 2
 	}
-	if err := m.Build(out, *keep, stderr); err != nil {
+	build := m.Build
+	if *host != "" {
+		build = func(out string, keep bool, log io.Writer) error { return m.BuildPlugin(out, *host, keep, log) }
+	}
+	if err := build(out, *keep, stderr); err != nil {
 		fmt.Fprintf(stderr, "reasonr-build: %v\n", err)
 		return 1
 	}
@@ -152,6 +171,9 @@ func Load(path string) (*Manifest, error) {
 		v, err := root.String(f.key, "")
 		if err != nil {
 			return nil, err
+		}
+		if v == "" {
+			continue // required unless the manifest is of a binary plugin (--host)
 		}
 		if *f.to, err = requirement(v); err != nil {
 			return nil, fmt.Errorf("%s: %s: %v", path, f.key, err)
@@ -232,7 +254,7 @@ func (m *Manifest) module(pkg string) string {
 // the replacements.
 func (m *Manifest) GoMod() []byte {
 	var b bytes.Buffer
-	fmt.Fprintf(&b, "module %s\n\ngo 1.23.0\n\nrequire (\n", m.Module)
+	fmt.Fprintf(&b, "module %s\n\ngo %s\n\nrequire (\n", m.Module, goDirective)
 	reqs := map[string]string{m.Engine.Path: m.Engine.Version, m.Port.Path: m.Port.Version}
 	for _, p := range m.Plugins {
 		if mod := m.module(p.Path); mod != "" {
@@ -309,7 +331,7 @@ func (m *Manifest) Build(out string, keep bool, log io.Writer) error {
 	if err := oneVersion(graph, m.Port.Path); err != nil {
 		return err
 	}
-	_, err = gocmd("build", "-o", out, ".")
+	_, err = gocmd("build", "-trimpath", "-o", out, ".")
 	return err
 }
 

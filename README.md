@@ -5,7 +5,7 @@ The engine runs ReasonR models (see the [compiler](https://github.com/tycheg/rea
 - the contract of plugins `port` — a Go module of its own without dependencies: the ports of adapters, their registration, the settings node and the byte-level conformance suites;
 - the contract of engine kinds `kind` (`Kind`, `Host`, the kernel, the value-level stores), the kernel and the host every engine kind runs on;
 - the built-in adapters: memory, HTTP, authentication (JWT, API keys), telemetry; the test drivers `memory`, `api` and `mcp`;
-- the server (`server.Main`) and the builder `reasonr-build`: a binary from a manifest of plugins.
+- the server (`server.Main`) and the builder `reasonr-build`: a binary from a manifest of plugins, or a binary plugin (`.so`) for a binary.
 
 The standard `reasonrd` is a manifest of the distribution ([reasonr-dist](https://github.com/tycheg/reasonr-dist)): the core with the official plugins ([PostgreSQL](https://github.com/tycheg/reasonr-postgres), [MongoDB](https://github.com/tycheg/reasonr-mongodb), [Kafka](https://github.com/tycheg/reasonr-kafka), the [Vault](https://github.com/tycheg/reasonr-vault) KMS), the engine kind [stateless](https://github.com/tycheg/reasonr-stateless), and the [web](https://github.com/tycheg/reasonr-web) bundle and test driver. A platform builds its own binary from a manifest of the plugins it needs (`reasonr-build`), as the pilot platform does. Rules for AI agents that test a model on the engine — [AGENTS.md](AGENTS.md).
 
@@ -198,7 +198,7 @@ reasonrd feature on tips --url http://localhost:8080 --all             # a reaso
 
 ## Development
 
-Go 1.23+. The core and the contract are two modules of one workspace (`go.work`): the core's tests run on the contract of the same commit, its `go.mod` requires a released one.
+Go 1.27.4+. The core and the contract are two modules of one workspace (`go.work`): the core's tests run on the contract of the same commit, its `go.mod` requires a released one.
 
 ```bash
 make check                 # gofmt, vet, staticcheck, the tests of the core, the builder and the contract (its suites run in the adapters' tests)
@@ -267,12 +267,33 @@ Every module of a build must require one version of the contract; the builder na
 
 A plugin from a private repository is fetched the way `go` fetches any private module: `GOPRIVATE` and git credentials with read access (in the image: `-e GOPRIVATE=example.com/acme -v ~/.netrc:/root/.netrc:ro`), or a local checkout with `--replace module=dir`.
 
+### Binary plugins
+
+A plugin is also loaded without rebuilding the binary, as a Go plugin (`.so`, plan 0024): the same packages, built for one binary with `--host`. Linux and macOS; the binary needs cgo, which the official builds of `reasonrd` have. `engine.yaml` names the plugins (relative to its file); `--plugin path` loads one for a command without a configuration:
+
+```yaml
+# plugin.yaml: engine and port may be left out — they are the binary's
+module: example.com/acme/oracle-plugin
+binary: oracle.so
+plugins:
+  - example.com/acme/reasonr-oracle v1.2.0
+```
+
+```bash
+reasonr-build -f plugin.yaml --host "$(command -v reasonrd)" -o plugins/oracle.so
+reasonrd --config engine.yaml --model taxi/src      # engine.yaml: plugins: [plugins/oracle.so]
+reasonrd migrate --plugin plugins/oracle.so --model taxi/src
+```
+
+The builder takes the binary's Go (`GOTOOLCHAIN`), platform, `-trimpath`, tags and the version of every module it contains; a plugin that needs a newer version of one of them is refused before the build, naming who requires it. At load the binary compares the plugin's build information with its own and names each difference (`is built for another binary`). A package the binary links already is the binary's (Go runs its `init` once); another package that registers a name the binary has is an error. A loaded plugin is not unloaded; on Windows, in a binary without cgo and in one built in a Go workspace (`go.work`) plugins are linked by a manifest.
+
 ## Layout
 
 | Directory | What is in it |
 |---|---|
 | `port` (a module), `kind`, `kind/kindtest`, `server` | The contracts above; `server` is two functions over `internal/server` |
-| `cmd/reasonr-build` | The builder and its image (`Dockerfile`) |
+| `cmd/reasonr-build` | The builder and its image (`Dockerfile`): a binary from a manifest, a binary plugin for a binary (`plugin.go`) |
+| `internal/plugins` | Loading binary plugins: `--plugin`, `plugins:` of the configuration, the check of the build information |
 | `internal/server` | The `reasonrd` commands common to the engine kinds: serve, dev, check, migrate, test, openapi, topics, pii, feature, api usage, mcp, demo, perf, test-worker |
 | `internal/kernel` | The engine kernel: tenant programs, read routing, commit with retries, uniqueness, idempotency, notifications, timers, migrations, `after` |
 | `internal/dispatch` | The effect stream: cursors, leases, retries, dead letters; asynchronous projections, the event store; the bus from the event store (`Bus`) and notifications without guarantees (`Notifier`); parallel sending of external requests with retries (`Sender`) |

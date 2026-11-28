@@ -43,6 +43,7 @@ import (
 	"github.com/tycheg/reasonr-engine/internal/config"
 	"github.com/tycheg/reasonr-engine/internal/host"
 	"github.com/tycheg/reasonr-engine/internal/kernel"
+	"github.com/tycheg/reasonr-engine/internal/plugins"
 	"github.com/tycheg/reasonr-engine/internal/ports"
 	"github.com/tycheg/reasonr-engine/internal/registry"
 	"github.com/tycheg/reasonr-engine/internal/servertest"
@@ -51,8 +52,15 @@ import (
 )
 
 // Main is the binary's entry point: the subcommand from args, stopping on
-// SIGINT and SIGTERM; it returns the exit code.
+// SIGINT and SIGTERM; it returns the exit code. The binary plugins of
+// --plugin and of plugins: in the configuration load first (plan 0024):
+// their kinds, adapters and commands are the binary's as linked ones are.
 func Main(args []string) int {
+	args, err := plugins.Args(args)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "reasonrd: %v\n", err)
+		return 1
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return Run(ctx, args, os.Stdout, os.Stderr)

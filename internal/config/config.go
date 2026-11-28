@@ -20,6 +20,9 @@ type Config struct {
 	// stateless (for example, a kind named acme reads acme: …); the
 	// kind's module parses it.
 	Settings *Node
+	// Plugins are the binary plugins (.so) the binary loads before it reads
+	// the rest (plan 0024), relative to the configuration file.
+	Plugins []string
 	// Stores are the stores by name; each has a type and adapter settings.
 	Stores map[string]*Node
 	// State is the store of entities, timers, the outbox, uniqueness.
@@ -173,7 +176,7 @@ func Decode(data []byte) (*Config, error) {
 		return nil, err
 	}
 	keys := []string{"engine", "stores", "state", "projections", "events", "bus", "integrations", "notifications",
-		"ingress", "auth", "tenants", "telemetry", "limits", "crypto", "ui", "features", "contexts"}
+		"ingress", "auth", "tenants", "telemetry", "limits", "crypto", "ui", "features", "contexts", "plugins"}
 	if c.Engine != "stateless" {
 		if slices.Contains(keys, c.Engine) {
 			return nil, errAt(root.Get("engine").Line, "engine %q: the name of a configuration section", c.Engine)
@@ -191,6 +194,9 @@ func Decode(data []byte) (*Config, error) {
 		return nil, err
 	}
 	if c.Contexts, err = root.Strings("contexts"); err != nil {
+		return nil, err
+	}
+	if c.Plugins, err = root.Strings("plugins"); err != nil {
 		return nil, err
 	}
 	if s := root.Get("stores"); s != nil {
